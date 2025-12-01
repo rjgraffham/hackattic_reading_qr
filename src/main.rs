@@ -189,9 +189,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let qr = qr.decode()?;
     decode_qr(qr)?;
 
+    dotenv::dotenv().ok();
+
+    let token = std::env::var("HACKATTIC_TOKEN").unwrap_or("DUMMY".into());
+    let problem_url = format!("https://hackattic.com/challenges/reading_qr/problem?access_token={}", token);
+    let solve_url = format!("https://hackattic.com/challenges/reading_qr/solve?access_token={}", token);
+
     // let client = reqwest::blocking::Client::new();
 
-    // let resp = client.get("https://hackattic.com/challenges/reading_qr/problem?access_token=DUMMY").send()?;
+    // let resp = client.get(&problem_url).send()?;
     // let resp: HackatticQRResponse = serde_json::from_str(&resp.text()?)?;
     // let resp = client.get(resp.image_url).send()?;
     // let qr = ImageReader::new(std::io::Cursor::new(resp.bytes()?))
@@ -202,7 +208,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // decode_qr(qr)?;
 
-    // let resp = client.post("https://hackattic.com/challenges/reading_qr/solve?access_token=DUMMY")
+    // let resp = client.post(&solve_url)
     //     .body(serde_json::to_string(&HackatticQRRequest { code: "dummy".into() })?)
     //     .send()?;
 
