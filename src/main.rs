@@ -5,6 +5,9 @@
     - Determine the maximum amount of space that a rotating code could require, and
       ensure that we won't clip it by translating it before finding the angle and
       rotating it.
+        - Partially complete - currently we simply translate the initial bounding box
+          to the bottom right, but it would be nice to at least detect if this still
+          won't be enough, and extend the image if necessary (or at least fail early).
     - Rotate based on detected orientation.
     - Implement reading for V1 codes.
     - (OPTIONAL) Generalize orientation detection into version and orientation detection,
@@ -12,7 +15,7 @@
       are short, but it would be nice to have a more robust implementation.
  */
 
-use imageproc::geometric_transformations::{rotate, Interpolation};
+use imageproc::geometric_transformations as geom;
 use imageproc::image::{imageops, DynamicImage, GrayImage, ImageFormat, ImageReader, Luma};
 use serde::{Serialize, Deserialize};
 
@@ -110,7 +113,20 @@ fn decode_qr(input: DynamicImage) -> Result<String, Box<dyn std::error::Error>> 
 
     // Find the top left corner of the bounding box of the QR code.
     let (w, h) = (input.width(), input.height());
-    let (x1, y1, _, _) = find_bounding_box(&input);
+    let (x1, y1, x2, y2) = find_bounding_box(&input);
+    
+    // Translate the image so the bounding box is in the bottom right.
+    // Correct the coordinates afterwards.
+    let offset_x = (w - 1) - x2;
+    let offset_y = (h - 1) - y2;
+
+    let input = geom::translate(
+        &input,
+        (offset_x as i32, offset_y as i32)
+    );
+
+    let x1 = x1 + offset_x;
+    let y1 = y1 + offset_y;
 
     // Find the leftmost pixel on the top row, and topmost pixel on the left column.
     let mut x2 = x1;
@@ -139,11 +155,11 @@ fn decode_qr(input: DynamicImage) -> Result<String, Box<dyn std::error::Error>> 
     let correction_angle = (tri_h / tri_w).atan();
 
     // Rotate the image based on the calculated angle.
-    let corrected = rotate(
+    let corrected = geom::rotate(
         &input,
         (x2 as f32, y1 as f32),
         correction_angle,
-        Interpolation::Bilinear,
+        geom::Interpolation::Bilinear,
         Luma::from([255u8])
     );
 
