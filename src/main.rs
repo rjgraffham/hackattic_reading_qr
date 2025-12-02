@@ -216,7 +216,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dry_run = std::env::var("DRY_RUN").unwrap_or("".into()) != "";
 
     let qr: DynamicImage = if dry_run {
-        ImageReader::open("E:\\Downloads\\7a0ad415.2a22.47e1.94e1.png")?
+        ImageReader::open("test_input.png")?
             .decode()?
     } else {
         let problem_url = format!("https://hackattic.com/challenges/reading_qr/problem?access_token={}", token);
