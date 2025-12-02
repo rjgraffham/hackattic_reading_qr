@@ -91,7 +91,7 @@ fn find_bounding_box(img: &GrayImage) -> (u32, u32, u32, u32) {
     (x1, y1, x2, y2)
 }
 
-fn decode_qr(input: DynamicImage) -> Result<(), Box<dyn std::error::Error>> {
+fn decode_qr(input: DynamicImage) -> Result<String, Box<dyn std::error::Error>> {
     let input = input.into_luma8();
 
     // Find the top left corner of the bounding box of the QR code.
@@ -175,44 +175,43 @@ fn decode_qr(input: DynamicImage) -> Result<(), Box<dyn std::error::Error>> {
     if id_right == ID_PATTERN { println!("ID line found on right.") }
     if id_lower == ID_PATTERN { println!("ID line found on lower.") }
 
-    Ok(())
+    Ok("dummy".into())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /* For testing, we will use the same local image every time. For the final
-       version we will instead get a dynamic image from an HTTP request. To
-       ease this conversion, we will delegate the actual logic to a function
-       that takes an Image and operates on it without knowing where it came
-       from.
-     */
-    let qr = ImageReader::open("E:\\Downloads\\7a0ad415.2a22.47e1.94e1.png")?;
-    let qr = qr.decode()?;
-    decode_qr(qr)?;
-
     dotenv::dotenv().ok();
 
+    let client = reqwest::blocking::Client::new();
     let token = std::env::var("HACKATTIC_TOKEN").unwrap_or("DUMMY".into());
-    let problem_url = format!("https://hackattic.com/challenges/reading_qr/problem?access_token={}", token);
-    let solve_url = format!("https://hackattic.com/challenges/reading_qr/solve?access_token={}", token);
+    let dry_run = std::env::var("DRY_RUN").unwrap_or("".into()) != "";
 
-    // let client = reqwest::blocking::Client::new();
+    let qr: DynamicImage = if dry_run {
+        ImageReader::open("E:\\Downloads\\7a0ad415.2a22.47e1.94e1.png")?
+            .decode()?
+    } else {
+        let problem_url = format!("https://hackattic.com/challenges/reading_qr/problem?access_token={}", token);
+        let resp = client.get(&problem_url).send()?;
+        let resp: HackatticQRResponse = serde_json::from_str(&resp.text()?)?;
+        let resp = client.get(resp.image_url).send()?;
+        ImageReader::new(std::io::Cursor::new(resp.bytes()?))
+            .with_guessed_format()?
+            .decode()?
+    };
+    
+    qr.save_with_format("debug_input.png", ImageFormat::Png)?;
+    
+    let solution = decode_qr(qr)?;
 
-    // let resp = client.get(&problem_url).send()?;
-    // let resp: HackatticQRResponse = serde_json::from_str(&resp.text()?)?;
-    // let resp = client.get(resp.image_url).send()?;
-    // let qr = ImageReader::new(std::io::Cursor::new(resp.bytes()?))
-    //     .with_guessed_format()?
-    //     .decode()?;
-
-    // qr.save_with_format("debug_downloaded.png", ImageFormat::Png)?;
-
-    // decode_qr(qr)?;
-
-    // let resp = client.post(&solve_url)
-    //     .body(serde_json::to_string(&HackatticQRRequest { code: "dummy".into() })?)
-    //     .send()?;
-
-    // Ok(println!("{}", resp.text()?))
+    if dry_run {
+        println!("Got solution: {}", solution);
+    } else {
+        let solve_url = format!("https://hackattic.com/challenges/reading_qr/solve?access_token={}", token);
+        let resp = client.post(&solve_url)
+            .body(serde_json::to_string(&HackatticQRRequest { code: solution })?)
+            .send()?;
+        println!("Server response:");
+        println!("{}", resp.text()?);
+    }
 
     Ok(())
 }
