@@ -1,3 +1,17 @@
+/* TODO:
+    - Break out the "detect orientation" logic into its own function
+    - Generalize the "find first non-empty row/column in X1,Y1-X2,Y2" so that the corner
+      finder and bounding box finder can both employ it.
+    - Determine the maximum amount of space that a rotating code could require, and
+      ensure that we won't clip it by translating it before finding the angle and
+      rotating it.
+    - Rotate based on detected orientation.
+    - Implement reading for V1 codes.
+    - (OPTIONAL) Generalize orientation detection into version and orientation detection,
+      and implement versioned reading. Hackattic seems to only use V1 as the secret codes
+      are short, but it would be nice to have a more robust implementation.
+ */
+
 use imageproc::geometric_transformations::{rotate, Interpolation};
 use imageproc::image::{imageops, DynamicImage, GrayImage, ImageFormat, ImageReader, Luma};
 use serde::{Serialize, Deserialize};
