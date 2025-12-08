@@ -1,16 +1,5 @@
 /* TODO:
-    - Break out the "detect orientation" logic into its own function
-    - Determine the maximum amount of space that a rotating code could require, and
-      ensure that we won't clip it by translating it before finding the angle and
-      rotating it.
-        - Partially complete - currently we simply translate the initial bounding box
-          to the bottom right, but it would be nice to at least detect if this still
-          won't be enough, and extend the image if necessary (or at least fail early).
-    - Rotate based on detected orientation.
     - Implement reading for V1 codes.
-    - (OPTIONAL) Generalize orientation detection into version and orientation detection,
-      and implement versioned reading. Hackattic seems to only use V1 as the secret codes
-      are short, but it would be nice to have a more robust implementation.
  */
 
 use imageproc::geometric_transformations as geom;
@@ -179,10 +168,19 @@ fn decode_qr(input: image::DynamicImage) -> Result<String, Box<dyn std::error::E
         ).0[0] < 127;
     }
 
-    if id_upper == ID_PATTERN { println!("ID line found on upper.") }
-    if id_left == ID_PATTERN { println!("ID line found on left.") }
-    if id_right == ID_PATTERN { println!("ID line found on right.") }
-    if id_lower == ID_PATTERN { println!("ID line found on lower.") }
+    // rotate the QR code so that the ID lines are on the top and left
+    // if they aren't already
+    let rotated = if id_lower == ID_PATTERN && id_left == ID_PATTERN {
+        image::imageops::rotate90(&cropped)
+    } else if id_right == ID_PATTERN && id_lower == ID_PATTERN {
+        image::imageops::rotate180(&cropped)
+    } else if id_upper == ID_PATTERN && id_right == ID_PATTERN {
+        image::imageops::rotate270(&cropped)
+    } else {
+        cropped
+    };
+
+    rotated.save_with_format("debug_rotated.png", image::ImageFormat::Png)?;
 
     Ok("dummy".into())
 }
