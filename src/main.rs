@@ -16,7 +16,7 @@
  */
 
 use imageproc::geometric_transformations as geom;
-use imageproc::image::{imageops, DynamicImage, GrayImage, ImageFormat, ImageReader, Luma};
+use imageproc::image;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -35,7 +35,7 @@ const ID_PATTERN: [bool; 21] = [
     true, true, true, true, true, true, true
 ];
 
-fn find_bounding_box(img: &GrayImage) -> (u32, u32, u32, u32) {
+fn find_bounding_box(img: &image::GrayImage) -> (u32, u32, u32, u32) {
     let mut x1 = 0;
     let mut y1 = 0;
     let mut x2 = img.width() - 1;
@@ -108,7 +108,7 @@ fn find_bounding_box(img: &GrayImage) -> (u32, u32, u32, u32) {
     (x1, y1, x2, y2)
 }
 
-fn decode_qr(input: DynamicImage) -> Result<String, Box<dyn std::error::Error>> {
+fn decode_qr(input: image::DynamicImage) -> Result<String, Box<dyn std::error::Error>> {
     let input = input.into_luma8();
 
     // Find the top left corner of the bounding box of the QR code.
@@ -160,14 +160,14 @@ fn decode_qr(input: DynamicImage) -> Result<String, Box<dyn std::error::Error>> 
         (x2 as f32, y1 as f32),
         correction_angle,
         geom::Interpolation::Bilinear,
-        Luma::from([255u8])
+        image::Luma::from([255u8])
     );
 
-    corrected.save_with_format("debug_corrected.png", ImageFormat::Png)?;
+    corrected.save_with_format("debug_corrected.png", image::ImageFormat::Png)?;
 
     let (x1, y1, x2, y2) = find_bounding_box(&corrected);
-    let cropped = imageops::crop_imm(&corrected, x1, y1, x2 - x1, y2 - y1).to_image();
-    cropped.save_with_format("debug_cropped.png", ImageFormat::Png)?;
+    let cropped = image::imageops::crop_imm(&corrected, x1, y1, x2 - x1, y2 - y1).to_image();
+    cropped.save_with_format("debug_cropped.png", image::ImageFormat::Png)?;
 
     // From here, we assume that we have a V1 QR code (21×21), determine the pitch,
     // and check which orientation it is.
@@ -215,20 +215,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = std::env::var("HACKATTIC_TOKEN").unwrap_or("DUMMY".into());
     let dry_run = std::env::var("DRY_RUN").unwrap_or("".into()) != "";
 
-    let qr: DynamicImage = if dry_run {
-        ImageReader::open("test_input.png")?
+    let qr: image::DynamicImage = if dry_run {
+        image::ImageReader::open("test_input.png")?
             .decode()?
     } else {
         let problem_url = format!("https://hackattic.com/challenges/reading_qr/problem?access_token={}", token);
         let resp = client.get(&problem_url).send()?;
         let resp: HackatticQRResponse = serde_json::from_str(&resp.text()?)?;
         let resp = client.get(resp.image_url).send()?;
-        ImageReader::new(std::io::Cursor::new(resp.bytes()?))
+        image::ImageReader::new(std::io::Cursor::new(resp.bytes()?))
             .with_guessed_format()?
             .decode()?
     };
     
-    qr.save_with_format("debug_input.png", ImageFormat::Png)?;
+    qr.save_with_format("debug_input.png", image::ImageFormat::Png)?;
     
     let solution = decode_qr(qr)?;
 
