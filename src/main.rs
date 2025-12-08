@@ -1,4 +1,18 @@
 /* TODO:
+    - Overhaul bounding box location:
+        - Current code can find a false corner when the topmost corner is a white pixel, so
+          we need to find all four corners.
+        - Should be doable by finding the apparent corners and then:
+            - Finding if there's one pair of approximately matching adjacent slopes, two pairs, or all four match
+            - If one pair match, adjust the corner that is on neither of them
+            - If two pairs match, find which pair has more black pixels outside of it and adjust their shared corner
+            - If all four match, the code is likely already correctly bounded
+        - Finding the true corners also allows determining the orientation *and* the pixel pitch by walking in from
+          the corners to find the black–white–longer black–white–black pattern of a locator corner
+        - Determining the pixel pitch without reference to code version (as the current implementation does) also
+          allows us to determine code version based on how far apart the paired locator corners are, so we can
+          either implement multiple version support, or at least warn that we were expecting a V1 code but it
+          does not appear to be one.
     - Implement reading for V1 codes.
  */
 
