@@ -1,7 +1,5 @@
 /* TODO:
     - Break out the "detect orientation" logic into its own function
-    - Generalize the "find first non-empty row/column in X1,Y1-X2,Y2" so that the corner
-      finder and bounding box finder can both employ it.
     - Determine the maximum amount of space that a rotating code could require, and
       ensure that we won't clip it by translating it before finding the angle and
       rotating it.
@@ -35,11 +33,8 @@ const ID_PATTERN: [bool; 21] = [
     true, true, true, true, true, true, true
 ];
 
-fn find_bounding_box(img: &image::GrayImage) -> (u32, u32, u32, u32) {
-    let mut x1 = 0;
-    let mut y1 = 0;
-    let mut x2 = img.width() - 1;
-    let mut y2 = img.height() - 1;
+fn shrinkwrap_bounding_box(img: &image::GrayImage, x1: u32, y1: u32, x2: u32, y2: u32) -> (u32, u32, u32, u32) {
+    let (mut x1, mut y1, mut x2, mut y2) = (x1, y1, x2, y2);
 
     while y1 < y2 {
         let mut found_edge = false;
@@ -113,7 +108,7 @@ fn decode_qr(input: image::DynamicImage) -> Result<String, Box<dyn std::error::E
 
     // Find the top left corner of the bounding box of the QR code.
     let (w, h) = (input.width(), input.height());
-    let (x1, y1, x2, y2) = find_bounding_box(&input);
+    let (x1, y1, x2, y2) = shrinkwrap_bounding_box(&input, 0, 0, input.width() - 1, input.height() - 1);
     
     // Translate the image so the bounding box is in the bottom right.
     // Correct the coordinates afterwards.
@@ -129,24 +124,8 @@ fn decode_qr(input: image::DynamicImage) -> Result<String, Box<dyn std::error::E
     let y1 = y1 + offset_y;
 
     // Find the leftmost pixel on the top row, and topmost pixel on the left column.
-    let mut x2 = x1;
-    let mut y2 = y1;
-
-    while x2 < w {
-        if input.get_pixel(x2, y1).0[0] < 16 {
-            break;
-        }
-
-        x2 += 1;
-    }
-
-    while y2 < h {
-        if input.get_pixel(x1, y2).0[0] < 16 {
-            break;
-        }
-        
-        y2 += 1;
-    }
+    let (x2, _, _, _) = shrinkwrap_bounding_box(&input, x1, y1, w - 1, y1);
+    let (_, y2, _, _) = shrinkwrap_bounding_box(&input, x1, y1, x1, h - 1);
 
     // Determine the angle needed to rotate the code to upright.
     let tri_w = (x2 - x1) as f32;
@@ -165,7 +144,7 @@ fn decode_qr(input: image::DynamicImage) -> Result<String, Box<dyn std::error::E
 
     corrected.save_with_format("debug_corrected.png", image::ImageFormat::Png)?;
 
-    let (x1, y1, x2, y2) = find_bounding_box(&corrected);
+    let (x1, y1, x2, y2) = shrinkwrap_bounding_box(&corrected, 0, 0, corrected.width() - 1, corrected.height() - 1);
     let cropped = image::imageops::crop_imm(&corrected, x1, y1, x2 - x1, y2 - y1).to_image();
     cropped.save_with_format("debug_cropped.png", image::ImageFormat::Png)?;
 
