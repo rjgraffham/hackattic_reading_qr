@@ -7,6 +7,13 @@
             - If one pair match, adjust the corner that is on neither of them
             - If two pairs match, find which pair has more black pixels outside of it and adjust their shared corner
             - If all four match, the code is likely already correctly bounded
+            - On consideration, should also be possible to look at the angle between adjacent edges.
+                - Specifically, there are two possibilities:
+                    - If one corner is empty, the corner closest to a 90 degree angle is the locator corner which
+                      has two neighbours, and so we know it and its neighbours are filled corners, and can adjust
+                      the final corner to match.
+                    - If no corner is empty, finding the naive corners has already found the true corners.
+                  the locator corner with two neighbours), and we can assume its adjacen
         - Finding the true corners also allows determining the orientation *and* the pixel pitch by walking in from
           the corners to find the black–white–longer black–white–black pattern of a locator corner
         - Determining the pixel pitch without reference to code version (as the current implementation does) also
