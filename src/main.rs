@@ -14,6 +14,11 @@
                       the final corner to match.
                     - If no corner is empty, finding the naive corners has already found the true corners.
                   the locator corner with two neighbours), and we can assume its adjacen
+            - ALTERNATIVELY, simply predict the missing corner based on each subset of three corners, and take
+              the prediction that differs least from the average of all four predictions. We probably don't need
+              any angle/line calculations for this - as only one corner is being predicted, we have two reference corners
+              on opposite sides, and we can simply invert the distances between one of them and the third reference pixel,
+              to predict the fourth pixel.
         - Finding the true corners also allows determining the orientation *and* the pixel pitch by walking in from
           the corners to find the black–white–longer black–white–black pattern of a locator corner
         - Determining the pixel pitch without reference to code version (as the current implementation does) also
