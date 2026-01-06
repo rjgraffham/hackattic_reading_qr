@@ -21,6 +21,9 @@
               to predict the fourth pixel.
         - Finding the true corners also allows determining the orientation *and* the pixel pitch by walking in from
           the corners to find the black–white–longer black–white–black pattern of a locator corner
+            - As with corner-finding, we don't need to directly identify which corner is not a locator, as we can simply
+              find the shortest match on each corner, predict the pixel pitch from that, and then see which corner disagrees
+              the most (differs most from the average) to determine that corner is not a locator, and thus the orientation.
         - Determining the pixel pitch without reference to code version (as the current implementation does) also
           allows us to determine code version based on how far apart the paired locator corners are, so we can
           either implement multiple version support, or at least warn that we were expecting a V1 code but it
